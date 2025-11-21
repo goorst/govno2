@@ -1,0 +1,6 @@
+Установи зависимости: pip install -r requirements.txt
+
+Запусти сервер: python app.py
+
+Перейди в браузер: http://localhost:5000
+
