@@ -52,8 +52,10 @@ header {
 }
 
 .image-box {
-    width: 550px;
-    height: 416px;
+    /* width: 550px;
+    height: 416px; */
+    width: 655px;
+    height: 550px;
     background-color: #221B2A;
     border-radius: 20px;
     padding: 20px;
@@ -70,8 +72,10 @@ header {
 }
 
 .text-box {
-    width: 550px;
-    height: 416px;
+    /* width: 550px;
+    height: 416px; */
+    width: 450px;
+    height: 550px;
     background-color: #221B2A;
     border-radius: 20px;
     padding: 20px;
@@ -105,8 +109,10 @@ header {
 }
 
 .placeholder-img {
-    width: 97px;
-    height: 77px;
+    /* width: 97px;
+    height: 77px; */
+    width: 120px;
+    height: 100px;
     display: block;
     margin-bottom: 1px;
 }
@@ -122,7 +128,7 @@ header {
 
 .upload-placeholder p {
     margin-top: 10px;
-    font-size: 0.9rem;
+    font-size: 18px;
     text-align: center;
     max-width: 80%;
 }
@@ -180,19 +186,23 @@ header {
 .action-buttons {
     display: flex;
     justify-content: center;
-    gap: 15px;
-    margin-top: 20px;
+    /* gap: 15px; */
+    gap: 30px;
+    /* margin-top: 40px; */
+    margin-top: 60px;
 }
 
 .action-buttons button {
-    padding: 10px 35px;
+    /* padding: 10px 35px; */
+    padding: 15px 55px;
     background-color: #2d2738;
     color: rgba(255, 255, 255, 0.8);
     font-family: 'Inter';
     border: none;
     border-radius: 20px;
     cursor: pointer;
-    font-size: 16px;
+    /* font-size: 16px; */
+    font-size: 20px;
     transition: background-color 0.3s ease;
     box-shadow: 
         0 0 10px rgba(153, 153, 153, 0.25);
