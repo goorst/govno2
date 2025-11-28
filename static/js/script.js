@@ -1,90 +1,31 @@
-// document.addEventListener('DOMContentLoaded', function() {
-//     const imageBox = document.getElementById('imageBox');
-//     const uploadPlaceholder = document.getElementById('uploadPlaceholder');
-//     const previewImage = document.getElementById('previewImage');
-//     const imageUpload = document.getElementById('imageUpload');
-
-//     // Кнопка "Загрузить DOCX/TXT"
-//     const uploadTextBtn = document.getElementById('uploadTextBtn');
-//     uploadTextBtn.addEventListener('click', function() {
-//         alert('test');
-//     });
-
-//     // Клик по блоку — открывает файловый диалог
-//     imageBox.addEventListener('click', function(e) {
-//         if (!e.target.closest('#previewImage')) {
-//             imageUpload.click();
-//         }
-//     });
-
-//     // Изменение файла
-//     imageUpload.addEventListener('change', handleFileSelect);
-
-//     // Перетаскивание
-//     imageBox.addEventListener('dragover', function(e) {
-//         e.preventDefault();
-//         imageBox.style.backgroundColor = '#2a2436';
-//     });
-
-//     imageBox.addEventListener('dragleave', function(e) {
-//         e.preventDefault();
-//         imageBox.style.backgroundColor = '#221B2A';
-//     });
-
-//     imageBox.addEventListener('drop', function(e) {
-//         e.preventDefault();
-//         imageBox.style.backgroundColor = '#221B2A';
-//         if (e.dataTransfer.files.length > 0) {
-//             handleFileSelect({ target: { files: e.dataTransfer.files } });
-//         }
-//     });
-
-//     function handleFileSelect(e) {
-//         const file = e.target.files[0];
-//         if (!file) return;
-
-//         if (!file.type.startsWith('image/')) {
-//             alert('Пожалуйста, выберите изображение!');
-//             return;
-//         }
-
-//         const reader = new FileReader();
-//         reader.onload = function(e) {
-//             previewImage.src = e.target.result;
-//             previewImage.style.display = 'block';
-//             uploadPlaceholder.style.display = 'none';
-//         };
-//         reader.readAsDataURL(file);
-//     }
-
-//     // Кнопка Clear
-//     clearBtn.addEventListener('click', function() {
-//         // Очистить текстовое поле
-//         textInput.value = '';
-//         // Сбросить input file
-//         imageUpload.value = '';
-//         // Скрыть preview, показать placeholder
-//         previewImage.style.display = 'none';
-//         uploadPlaceholder.style.display = 'flex';
-
-//         // Сбросить фон (на случай, если остался hover)
-//         imageBox.style.backgroundColor = '#221B2A';
-//     });
-
-// });
-
-
 document.addEventListener('DOMContentLoaded', function() {
+    // Элементы DOM
     const imageBox = document.getElementById('imageBox');
     const uploadPlaceholder = document.getElementById('uploadPlaceholder');
     const previewImage = document.getElementById('previewImage');
     const imageUpload = document.getElementById('imageUpload');
     const textInput = document.getElementById('textInput');
+    const uploadTextBtn = document.getElementById('uploadTextBtn');
+    const writeBtn = document.getElementById('writeBtn');
+    const readBtn = document.getElementById('readBtn');
     const clearBtn = document.getElementById('clearBtn');
+    const downloadStegoBtn = document.getElementById('downloadStegoBtn');
 
-    // === ЗАГРУЗКА ИЗОБРАЖЕНИЯ НА СЕРВЕР ===
-    function handleFileSelect(e) {
-        const file = e.target.files[0];
+    let currentImageFile = null;
+
+    // === ФУНКЦИЯ СБРОСА В ДЕФОЛТНОЕ СОСТОЯНИЕ ===
+    function resetToDefault() {
+        textInput.value = '';
+        imageUpload.value = '';
+        previewImage.style.display = 'none';
+        uploadPlaceholder.style.display = 'flex';
+        downloadStegoBtn.style.display = 'none';
+        currentImageFile = null;
+    }
+
+    // === ОБРАБОТКА ВЫБОРА ИЗОБРАЖЕНИЯ ===
+    function handleImageSelect(e) {
+        const file = e.target.files[0] || (e.dataTransfer && e.dataTransfer.files[0]);
         if (!file) return;
 
         if (!file.type.startsWith('image/')) {
@@ -92,7 +33,10 @@ document.addEventListener('DOMContentLoaded', function() {
             return;
         }
 
-        // Показываем preview в браузере
+        // Сохраняем файл
+        currentImageFile = file;
+
+        // Показываем preview
         const reader = new FileReader();
         reader.onload = function(e) {
             previewImage.src = e.target.result;
@@ -100,35 +44,13 @@ document.addEventListener('DOMContentLoaded', function() {
             uploadPlaceholder.style.display = 'none';
         };
         reader.readAsDataURL(file);
-
-        // === ОТПРАВКА НА PYTHON (/upload_image) ===
-        const formData = new FormData();
-        formData.append('image', file);
-
-        fetch('/upload_image', {
-            method: 'POST',
-            body: formData
-        })
-        .then(response => response.json())
-        .then(data => {
-            if (data.error) {
-                alert('Ошибка загрузки: ' + data.error);
-            } else {
-                console.log('Изображение сохранено на сервере:', data.path);
-            }
-        })
-        .catch(err => {
-            console.error('Ошибка сети:', err);
-            alert('Не удалось отправить изображение на сервер');
-        });
     }
 
     // === ЗАГРУЗКА ТЕКСТОВОГО ФАЙЛА ===
-    const uploadTextBtn = document.getElementById('uploadTextBtn');
     uploadTextBtn.addEventListener('click', function() {
         const input = document.createElement('input');
         input.type = 'file';
-        input.accept = '.txt,.docx';
+        input.accept = '.txt';
         input.onchange = (e) => {
             const file = e.target.files[0];
             if (!file) return;
@@ -136,36 +58,166 @@ document.addEventListener('DOMContentLoaded', function() {
             const formData = new FormData();
             formData.append('text_file', file);
 
-            fetch('/upload_text', {
+            uploadTextBtn.textContent = 'Загрузка...';
+            uploadTextBtn.disabled = true;
+
+            fetch('/upload_text_file', {
                 method: 'POST',
                 body: formData
             })
-            .then(response => response.json())
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Server error');
+                }
+                return response.json();
+            })
             .then(data => {
                 if (data.error) {
                     alert('Ошибка: ' + data.error);
                 } else {
-                    textInput.value = data.text; // Вставить текст в поле
-                    alert('Текст загружен!');
+                    textInput.value = data.text;
                 }
             })
             .catch(err => {
                 console.error('Ошибка:', err);
-                alert('Не удалось загрузить текст');
+                alert('Не удалось загрузить файл');
+            })
+            .finally(() => {
+                uploadTextBtn.textContent = 'Загрузить TXT';
+                uploadTextBtn.disabled = false;
             });
         };
         input.click();
     });
 
-    // === ОСТАЛЬНЫЕ СОБЫТИЯ ===
-    imageBox.addEventListener('click', function(e) {
-        if (!e.target.closest('#previewImage')) {
-            imageUpload.click();
+    // === КНОПКА WRITE (скрыть текст) ===
+    writeBtn.addEventListener('click', function() {
+        if (!currentImageFile) {
+            alert('Сначала загрузите PNG изображение!');
+            return;
         }
+        
+        if (!textInput.value.trim()) {
+            alert('Введите текст для скрытия!');
+            return;
+        }
+
+        // Показываем индикатор загрузки
+        const originalText = writeBtn.textContent;
+        writeBtn.textContent = 'Обработка...';
+        writeBtn.disabled = true;
+
+        // Создаем FormData
+        const formData = new FormData();
+        formData.append('image', currentImageFile);
+        formData.append('text', textInput.value);
+
+        // Отправляем запрос
+        fetch('/hide_text', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network error');
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.error) {
+                throw new Error(data.error);
+            }
+            
+            // Успех!
+            alert('Текст успешно скрыт в изображении!');
+            
+            // Показываем кнопку скачивания
+            downloadStegoBtn.style.display = 'inline-block';
+            
+            // Настраиваем скачивание с сбросом состояния после скачивания
+            downloadStegoBtn.onclick = function() {
+                // Создаем временную ссылку для скачивания
+                const downloadUrl = data.download_url;
+                const a = document.createElement('a');
+                a.href = downloadUrl;
+                a.download = data.stego_filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                
+                // Сбрасываем состояние после скачивания
+                setTimeout(resetToDefault, 100);
+            };
+        })
+        .catch(err => {
+            console.error('Ошибка:', err);
+            alert('Ошибка: ' + err.message);
+        })
+        .finally(() => {
+            writeBtn.textContent = originalText;
+            writeBtn.disabled = false;
+        });
     });
 
-    imageUpload.addEventListener('change', handleFileSelect);
+    // === КНОПКА READ (извлечь текст) ===
+    readBtn.addEventListener('click', function() {
+        if (!currentImageFile) {
+            alert('Сначала загрузите PNG изображение со скрытым текстом!');
+            return;
+        }
 
+        // Показываем индикатор загрузки
+        const originalText = readBtn.textContent;
+        readBtn.textContent = 'Чтение...';
+        readBtn.disabled = true;
+
+        // Создаем FormData
+        const formData = new FormData();
+        formData.append('image', currentImageFile);
+
+        // Отправляем запрос
+        fetch('/extract_text', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network error');
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.error) {
+                throw new Error(data.error);
+            }
+            
+            // Успех! Показываем извлеченный текст
+            textInput.value = data.text;
+            alert('Текст успешно извлечен из изображения!');
+        })
+        .catch(err => {
+            console.error('Ошибка:', err);
+            alert('Ошибка: ' + err.message);
+        })
+        .finally(() => {
+            readBtn.textContent = originalText;
+            readBtn.disabled = false;
+        });
+    });
+
+    // === КНОПКА CLEAR ===
+    clearBtn.addEventListener('click', function() {
+        resetToDefault();
+    });
+
+    // === ОБРАБОТЧИКИ СОБЫТИЙ ===
+    imageBox.addEventListener('click', function() {
+        imageUpload.click();
+    });
+
+    imageUpload.addEventListener('change', handleImageSelect);
+
+    // Drag and Drop
     imageBox.addEventListener('dragover', function(e) {
         e.preventDefault();
         imageBox.style.backgroundColor = '#2a2436';
@@ -179,17 +231,6 @@ document.addEventListener('DOMContentLoaded', function() {
     imageBox.addEventListener('drop', function(e) {
         e.preventDefault();
         imageBox.style.backgroundColor = '#221B2A';
-        if (e.dataTransfer.files.length > 0) {
-            handleFileSelect({ target: { files: e.dataTransfer.files } });
-        }
-    });
-
-    // === CLEAR ===
-    clearBtn.addEventListener('click', function() {
-        textInput.value = '';
-        imageUpload.value = '';
-        previewImage.style.display = 'none';
-        uploadPlaceholder.style.display = 'flex';
-        imageBox.style.backgroundColor = '#221B2A';
+        handleImageSelect(e);
     });
 });
