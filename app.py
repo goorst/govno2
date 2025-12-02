@@ -1,6 +1,7 @@
 from flask import Flask, render_template, request, jsonify, send_file
 import os
 from stegano_png import hide_text_png, extract_text_png
+from stegano_jpg import hide_text_jpg, extract_text_jpg
 import io
 
 app = Flask(__name__)
@@ -15,7 +16,6 @@ def index():
 def hide_text():
     """Основной эндпоинт для скрытия текста в изображении"""
     try:
-        # Проверяем наличие файла и текста
         if 'image' not in request.files:
             return jsonify({'error': 'No image file'}), 400
             
@@ -28,16 +28,25 @@ def hide_text():
         if not text:
             return jsonify({'error': 'No text provided'}), 400
 
-        # Проверяем что это PNG
-        if not image_file.filename.lower().endswith('.png'):
-            return jsonify({'error': 'Only PNG images supported'}), 400
-
-        # Скрываем текст в изображении
-        output_stream = hide_text_png(image_file, text)
+        # Определяем формат изображения
+        filename_lower = image_file.filename.lower()
         
+        if filename_lower.endswith('.png'):
+            # Используем PNG алгоритм (LSB)
+            output_stream = hide_text_png(image_file, text)
+            output_extension = '.png'
+            
+        elif filename_lower.endswith(('.jpg', '.jpeg', '.jpe')):
+            # Используем JPG алгоритм (DCT)
+            output_stream = hide_text_jpg(image_file, text)
+            output_extension = '.jpg'
+            
+        else:
+            return jsonify({'error': 'Unsupported image format. Use PNG or JPG'}), 400
+
         # Сохраняем результат в uploads
         original_name = os.path.splitext(image_file.filename)[0]
-        output_filename = f"{original_name}_stego.png"
+        output_filename = f"{original_name}_stego{output_extension}"
         output_path = os.path.join(app.config['UPLOAD_FOLDER'], output_filename)
         
         with open(output_path, 'wb') as f:
@@ -65,12 +74,17 @@ def extract_text():
         if image_file.filename == '':
             return jsonify({'error': 'No image selected'}), 400
 
-        # Проверяем что это PNG
-        if not image_file.filename.lower().endswith('.png'):
-            return jsonify({'error': 'Only PNG images supported'}), 400
-
-        # Извлекаем текст из изображения
-        extracted_text = extract_text_png(image_file)
+        # Определяем формат изображения
+        filename_lower = image_file.filename.lower()
+        
+        if filename_lower.endswith('.png'):
+            extracted_text = extract_text_png(image_file)
+            
+        elif filename_lower.endswith(('.jpg', '.jpeg', '.jpe')):
+            extracted_text = extract_text_jpg(image_file)
+            
+        else:
+            return jsonify({'error': 'Unsupported image format. Use PNG or JPG'}), 400
         
         if not extracted_text:
             return jsonify({'error': 'No hidden text found in the image'}), 400
@@ -119,3 +133,4 @@ def upload_text_file():
 
 if __name__ == '__main__':
     app.run(debug=True)
+

@@ -1,1 +1,2 @@
-pip install flask pillow python-docx
+pip install flask pillow python-docx scipy numpy scipy 
+# может надо numpy 
