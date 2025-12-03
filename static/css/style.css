@@ -207,9 +207,37 @@ header {
     filter: blur(10);
 }
 
-
+/* 
 .action-buttons button:hover {
     background-color: rgb(5, 2, 10, 0.8); 
+    box-shadow: 
+        0 0 10px rgba(255, 255, 255, 0.4),
+        0 0 0 1px rgb(156, 77, 255, 0.4);
+} */
+
+#clearBtn:hover {
+    background-color: rgb(5, 2, 10, 0.8); 
+    box-shadow: 
+        0 0 10px rgba(255, 255, 255, 0.4),
+        0 0 0 1px rgb(156, 77, 255, 0.4);
+}
+
+#readBtn:hover {
+    background-color: rgb(5, 2, 10, 0.8); 
+    box-shadow: 
+        0 0 10px rgba(255, 255, 255, 0.4),
+        0 0 0 1px rgb(156, 77, 255, 0.4);
+}
+
+#writeBtn:hover {
+    background-color: rgb(5, 2, 10, 0.8); 
+    box-shadow: 
+        0 0 10px rgba(255, 255, 255, 0.4),
+        0 0 0 1px rgb(156, 77, 255, 0.4);
+}
+
+#downloadStegoBtn:hover {
+    background-color: rgba(125, 6, 200, 0.8); 
     box-shadow: 
         0 0 10px rgba(255, 255, 255, 0.4),
         0 0 0 1px rgb(156, 77, 255, 0.4);
@@ -220,7 +248,7 @@ header {
     transform: scale(0.98);
 }
 
-#downloadStegoBtn {
+/* #downloadStegoBtn {
     margin-top: 10px;
     padding: 8px 16px;
     background-color: #2d2738;
@@ -230,11 +258,11 @@ header {
     cursor: pointer;
     font-size: 0.9rem;
     transition: background-color 0.3s ease;
-}
-
+} */
+/* 
 #downloadStegoBtn:hover {
     background-color: #3a334b;
-}
+} */
 
 /* Адаптивность */
 @media (max-width: 768px) {

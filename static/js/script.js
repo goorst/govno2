@@ -273,11 +273,11 @@ document.addEventListener('DOMContentLoaded', function() {
         }
 
         // Проверяем формат
-        const validExtensions = ['.png', '.jpg', '.jpeg', '.jpe'];
+        const validExtensions = ['.png', '.jpg', '.jpeg', '.jpe', '.bmp', '.webp'];
         const fileExtension = file.name.toLowerCase().slice(file.name.lastIndexOf('.'));
         
         if (!validExtensions.includes(fileExtension)) {
-            alert('Поддерживаются только PNG и JPG изображения!');
+            alert('Поддерживаются только PNG|JPG|BMP|WebP изображения!');
             return;
         }
 
@@ -353,8 +353,9 @@ document.addEventListener('DOMContentLoaded', function() {
         // Проверяем формат файла
         const filename = currentImageFile.name.toLowerCase();
         if (!filename.endsWith('.png') && !filename.endsWith('.jpg') && 
-            !filename.endsWith('.jpeg') && !filename.endsWith('.jpe')) {
-            alert('Поддерживаются только PNG и JPG изображения!');
+            !filename.endsWith('.jpeg') && !filename.endsWith('.jpe') &&
+            !filename.endsWith('.bmp') && !filename.endsWith('.webp')) {
+            alert('Поддерживаются только PNG|JPG|BMP|WebP изображения!');
             return;
         }
 
@@ -425,7 +426,8 @@ document.addEventListener('DOMContentLoaded', function() {
         // Проверяем формат файла
         const filename = currentImageFile.name.toLowerCase();
         if (!filename.endsWith('.png') && !filename.endsWith('.jpg') && 
-            !filename.endsWith('.jpeg') && !filename.endsWith('.jpe')) {
+            !filename.endsWith('.jpeg') && !filename.endsWith('.jpe') &&
+            !filename.endsWith('.bmp') && !filename.endsWith('.webp')) {
             alert('Поддерживаются только PNG и JPG изображения!');
             return;
         }

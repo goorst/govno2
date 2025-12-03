@@ -22,7 +22,7 @@
                         <img src="{{ url_for('static', filename='images/placeholder.svg') }}" alt="Upload Image" class="placeholder-img">
                         <p class="upload-text">Загрузите своё изображение</p>
                     </div>
-                    <input type="file" id="imageUpload" accept="image/*">
+                    <input type="file" id="imageUpload" accept="image/png, image/jpeg, image/jpg, image/bmp, image/webp">
                     <img id="previewImage" src="" alt="Preview">
                 </div>
 
@@ -33,11 +33,12 @@
             </div>
 
             <div class="action-buttons">
-                <button id="writeBtn">Write</button>
-                <button id="readBtn">Read</button>
                 <button id="clearBtn">Clear</button>
+                <button id="readBtn">Read</button>
+                <button id="writeBtn">Write</button>
+                <button id="downloadStegoBtn" style="display: none;" class="action-button">Скачать изображение</button>
             </div>
-            <button id="downloadStegoBtn" style="display: none" class="action-button">Скачать изображение</button>
+            <!-- <button id="downloadStegoBtn" style="display: none" class="action-button">Скачать изображение</button> -->
         </main>
     </div>
 
