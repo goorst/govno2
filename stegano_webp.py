@@ -1,6 +1,7 @@
 from PIL import Image
 import io
 
+
 def hide_text_webp(image_file, text: str) -> io.BytesIO:
     """
     Скрывает текст в WebP-изображении с помощью LSB-стеганографии.
@@ -10,21 +11,25 @@ def hide_text_webp(image_file, text: str) -> io.BytesIO:
     image_file.seek(0)
     img = Image.open(image_file)
     
-    # Конвертируем в RGB/RGBA для совместимости
-    if img.mode not in ['RGB', 'RGBA']:
+    if img.mode != 'RGB':
         img = img.convert('RGB')
     
-    # Добавляем терминатор
-    text += '\x00'
+    # Кодируем текст в UTF-8 байты
+    text_bytes = text.encode('utf-8')
     
-    # Преобразуем текст в биты
-    bits = ''.join(format(ord(char), '08b') for char in text)
+    # Добавляем терминатор (нулевой байт)
+    text_bytes += b'\x00'
+    
+    # Преобразуем байты в биты
+    bits = []
+    for byte in text_bytes:
+        bits.extend(format(byte, '08b'))
+    bits_str = ''.join(bits)
     
     # Проверяем размер
-    channels = 3 if img.mode == 'RGB' else 4  # RGBA
-    total_bits = img.width * img.height * channels
-    if len(bits) > total_bits:
-        raise ValueError("Текст слишком длинный для данного изображения.")
+    total_bits = img.width * img.height * 3
+    if len(bits_str) > total_bits:
+        raise ValueError(f"Текст слишком длинный. Максимум: {total_bits//8} байт")
     
     # Создаём копию для модификации
     encoded_img = img.copy()
@@ -34,32 +39,31 @@ def hide_text_webp(image_file, text: str) -> io.BytesIO:
     # Проходим по всем пикселям
     for y in range(img.height):
         for x in range(img.width):
-            if bit_index >= len(bits):
+            if bit_index >= len(bits_str):
                 break
                 
-            pixel = img.getpixel((x, y))
-            new_pixel = []
+            r, g, b = img.getpixel((x, y))
+            new_r, new_g, new_b = r, g, b
             
-            # Обрабатываем каждый канал
-            for i, channel_value in enumerate(pixel[:channels]):  # Берем только цветовые каналы
-                if bit_index < len(bits):
-                    # Меняем младший бит
-                    new_channel = (channel_value & 0xFE) | int(bits[bit_index])
-                    bit_index += 1
-                else:
-                    new_channel = channel_value
-                new_pixel.append(new_channel)
+            # Меняем младший бит
+            if bit_index < len(bits_str):
+                new_r = (r & 0xFE) | int(bits_str[bit_index])
+                bit_index += 1
+                
+            if bit_index < len(bits_str):
+                new_g = (g & 0xFE) | int(bits_str[bit_index])
+                bit_index += 1
+                
+            if bit_index < len(bits_str):
+                new_b = (b & 0xFE) | int(bits_str[bit_index])
+                bit_index += 1
             
-            # Если RGBA, сохраняем альфа-канал без изменений
-            if img.mode == 'RGBA' and len(pixel) == 4 and i < 3:
-                new_pixel.append(pixel[3])
+            pixels[x, y] = (new_r, new_g, new_b)
             
-            pixels[x, y] = tuple(new_pixel)
-            
-        if bit_index >= len(bits):
+        if bit_index >= len(bits_str):
             break
     
-    # Сохраняем результат как WebP с минимальным сжатием для сохранения LSB
+    # Сохраняем результат
     output = io.BytesIO()
     encoded_img.save(output, format='WEBP', lossless=True, quality=100)
     output.seek(0)
@@ -73,35 +77,45 @@ def extract_text_webp(image_file) -> str:
     image_file.seek(0)
     img = Image.open(image_file)
     
-    # Конвертируем в RGB/RGBA для совместимости
-    if img.mode not in ['RGB', 'RGBA']:
+    if img.mode != 'RGB':
         img = img.convert('RGB')
     
-    channels = 3 if img.mode == 'RGB' else 3  # Для извлечения используем только цветовые каналы
-    
     bits = []
-    text = ""
+    bytes_list = []
     
     # Проходим по всем пикселям и извлекаем младшие биты
     for y in range(img.height):
         for x in range(img.width):
-            pixel = img.getpixel((x, y))
+            r, g, b = img.getpixel((x, y))
             
-            # Извлекаем младшие биты каждого цветового канала
-            for i in range(channels):
-                bits.append(str(pixel[i] & 1))
+            # Извлекаем младшие биты каждого канала
+            bits.append(str(r & 1))
+            bits.append(str(g & 1))
+            bits.append(str(b & 1))
             
-            # Каждые 8 бит пытаемся преобразовать в символ
+            # Каждые 8 бит преобразуем в байт
             while len(bits) >= 8:
                 byte_bits = bits[:8]
                 bits = bits[8:]
                 
-                char_code = int(''.join(byte_bits), 2)
+                byte_value = int(''.join(byte_bits), 2)
                 
                 # Если встретили нулевой байт - конец текста
-                if char_code == 0:
-                    return text
+                if byte_value == 0:
+                    try:
+                        # Декодируем все байты как UTF-8
+                        return bytes(bytes_list).decode('utf-8')
+                    except UnicodeDecodeError:
+                        # Если не получается декодировать как UTF-8, пробуем другие кодировки
+                        try:
+                            return bytes(bytes_list).decode('cp1251')
+                        except:
+                            return bytes(bytes_list).decode('latin-1')
                 
-                text += chr(char_code)
+                bytes_list.append(byte_value)
     
-    return text
+    # Если не нашли терминатор, пытаемся декодировать то, что есть
+    try:
+        return bytes(bytes_list).decode('utf-8')
+    except UnicodeDecodeError:
+        return bytes(bytes_list).decode('latin-1')
