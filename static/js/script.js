@@ -1,6 +1,7 @@
 document.addEventListener('DOMContentLoaded', function() {
     // Элементы DOM
     const imageBox = document.getElementById('imageBox');
+    const textBox = document.getElementById('textBox');
     const uploadPlaceholder = document.getElementById('uploadPlaceholder');
     const previewImage = document.getElementById('previewImage');
     const imageUpload = document.getElementById('imageUpload');
@@ -25,7 +26,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // === ОБРАБОТКА ВЫБОРА ИЗОБРАЖЕНИЯ ===
     function handleImageSelect(e) {
-        const file = e.target.files[0] || (e.dataTransfer && e.dataTransfer.files[0]);
+        let file = (e.target && e.target.files && e.target.files[0]) ||
+            (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files[0]);
+        if (!file && e.dataTransfer && e.dataTransfer.items && e.dataTransfer.items[0]) {
+            const item = e.dataTransfer.items[0];
+            if (item.kind === 'file') file = item.getAsFile();
+        }
         if (!file) return;
 
         // Проверяем, что это изображение
@@ -245,20 +251,81 @@ document.addEventListener('DOMContentLoaded', function() {
 
     imageUpload.addEventListener('change', handleImageSelect);
 
-    // Drag and Drop
+    // === Drag and Drop для изображений ===
+    imageBox.addEventListener('dragenter', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        imageBox.style.backgroundColor = '#2a2436';
+    });
+
     imageBox.addEventListener('dragover', function(e) {
         e.preventDefault();
+        e.stopPropagation();
+        e.dataTransfer.dropEffect = 'copy';
         imageBox.style.backgroundColor = '#2a2436';
+        return false;
     });
 
     imageBox.addEventListener('dragleave', function(e) {
         e.preventDefault();
-        imageBox.style.backgroundColor = '#221B2A';
+        if (!imageBox.contains(e.relatedTarget)) {
+            imageBox.style.backgroundColor = '#221B2A';
+        }
     });
 
     imageBox.addEventListener('drop', function(e) {
         e.preventDefault();
+        e.stopPropagation();
         imageBox.style.backgroundColor = '#221B2A';
         handleImageSelect(e);
+        return false;
     });
+
+    // === Drag and Drop для TXT-файла в область текста ===
+    function handleTextFileDrop(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        textBox.style.backgroundColor = '#221B2A';
+        let file = e.dataTransfer.files && e.dataTransfer.files[0];
+        if (!file && e.dataTransfer.items && e.dataTransfer.items[0]) {
+            const item = e.dataTransfer.items[0];
+            if (item.kind === 'file') file = item.getAsFile();
+        }
+        if (!file) return;
+
+        const ext = file.name.toLowerCase().slice(file.name.lastIndexOf('.'));
+        if (ext !== '.txt') {
+            alert('Поддерживаются только TXT-файлы!');
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = function(ev) {
+            textInput.value = ev.target.result;
+        };
+        reader.readAsText(file, 'UTF-8');
+    }
+
+    textBox.addEventListener('dragenter', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        textBox.style.backgroundColor = '#2a2436';
+    });
+
+    textBox.addEventListener('dragover', function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        e.dataTransfer.dropEffect = 'copy';
+        textBox.style.backgroundColor = '#2a2436';
+        return false;
+    });
+
+    textBox.addEventListener('dragleave', function(e) {
+        e.preventDefault();
+        if (!textBox.contains(e.relatedTarget)) {
+            textBox.style.backgroundColor = '#221B2A';
+        }
+    });
+
+    textBox.addEventListener('drop', handleTextFileDrop);
 });

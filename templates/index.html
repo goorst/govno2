@@ -20,14 +20,14 @@
                 <div class="image-box" id="imageBox">
                     <div class="upload-placeholder" id="uploadPlaceholder">
                         <img src="{{ url_for('static', filename='images/placeholder.svg') }}" alt="Upload Image" class="placeholder-img">
-                        <p class="upload-text">Загрузите своё изображение</p>
+                        <p class="upload-text">Загрузите изображение или перетащите сюда</p>
                     </div>
                     <input type="file" id="imageUpload" accept="image/png, image/jpeg, image/jpg, image/bmp, image/webp">
                     <img id="previewImage" src="" alt="Preview">
                 </div>
 
-                <div class="text-box">
-                    <textarea id="textInput" placeholder="Начните писать текст тут или загрузите файл по кнопке ниже"></textarea>
+                <div class="text-box" id="textBox">
+                    <textarea id="textInput" placeholder="Начните писать текст тут или перетащите TXT-файл"></textarea>
                     <button id="uploadTextBtn">Загрузить TXT</button>
                 </div>
             </div>
