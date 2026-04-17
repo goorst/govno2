@@ -8,6 +8,7 @@ import io
 
 app = Flask(__name__)
 app.config['UPLOAD_FOLDER'] = 'uploads'
+app.config['STEGANO_KEY'] = 'my_secret_stegano_key_2026'
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
 
 @app.route('/')
@@ -34,29 +35,25 @@ def hide_text():
         filename_lower = image_file.filename.lower()
         
         if filename_lower.endswith('.png'):
-            # Используем PNG алгоритм (LSB)
-            output_stream = hide_text_png(image_file, text)
+            output_stream = hide_text_png(image_file, text, app.config['STEGANO_KEY'])
             output_extension = '.png'
             
         elif filename_lower.endswith(('.jpg', '.jpeg', '.jpe')):
-            # Используем JPG алгоритм (DCT)
             output_stream = hide_text_jpg(image_file, text)
             output_extension = '.jpg'
             
         elif filename_lower.endswith('.bmp'):
-            # Используем BMP алгоритм (LSB)
-            output_stream = hide_text_bmp(image_file, text)
+            output_stream = hide_text_bmp(image_file, text, app.config['STEGANO_KEY'])
             output_extension = '.bmp'
             
         elif filename_lower.endswith('.webp'):
-            # Используем WebP алгоритм (LSB)
-            output_stream = hide_text_webp(image_file, text)
+            output_stream = hide_text_webp(image_file, text, app.config['STEGANO_KEY'])
             output_extension = '.webp'
             
         else:
             return jsonify({'error': 'Unsupported image format. Use PNG, JPG, BMP, or WebP'}), 400
 
-        # Сохраняем результат в uploads
+        # Сохраняем результат
         original_name = os.path.splitext(image_file.filename)[0]
         output_filename = f"{original_name}_stego{output_extension}"
         output_path = os.path.join(app.config['UPLOAD_FOLDER'], output_filename)
@@ -90,16 +87,16 @@ def extract_text():
         filename_lower = image_file.filename.lower()
         
         if filename_lower.endswith('.png'):
-            extracted_text = extract_text_png(image_file)
+            extracted_text = extract_text_png(image_file, app.config['STEGANO_KEY'])
             
         elif filename_lower.endswith(('.jpg', '.jpeg', '.jpe')):
             extracted_text = extract_text_jpg(image_file)
             
         elif filename_lower.endswith('.bmp'):
-            extracted_text = extract_text_bmp(image_file)
+            extracted_text = extract_text_bmp(image_file, app.config['STEGANO_KEY'])
             
         elif filename_lower.endswith('.webp'):
-            extracted_text = extract_text_webp(image_file)
+            extracted_text = extract_text_webp(image_file, app.config['STEGANO_KEY'])
             
         else:
             return jsonify({'error': 'Unsupported image format. Use PNG, JPG, BMP, or WebP'}), 400
@@ -139,7 +136,6 @@ def upload_text_file():
         if file.filename == '':
             return jsonify({'error': 'No file selected'}), 400
         
-        # Для простоты - поддерживаем только TXT
         if not file.filename.lower().endswith('.txt'):
             return jsonify({'error': 'Only TXT files supported'}), 400
             

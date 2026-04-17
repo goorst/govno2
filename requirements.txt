@@ -1,1 +1,7 @@
-pip install flask pillow python-docx scipy numpy scipy 
+flask 
+pillow 
+python-docx 
+scipy 
+numpy 
+scikit-image
+matplotlib
