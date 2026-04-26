@@ -3,7 +3,6 @@ import io
 import hashlib
 import random
 
-# Уникальный маркер конца текста (5 байт)
 END_MARKER = b'\x00\xFF\x00\xFF\x00'
 
 def generate_seed_from_key(key: str = "default_seed") -> int:
@@ -11,17 +10,25 @@ def generate_seed_from_key(key: str = "default_seed") -> int:
     return int.from_bytes(hash_object.digest()[:8], 'big')
 
 def generate_pseudo_random_positions(total_pixels: int, total_bits: int, seed_key: str = "stegano_key") -> list:
+    """Генерирует псевдослучайные позиции без создания полного списка"""
     seed = generate_seed_from_key(seed_key)
-    random.seed(seed)
-    all_positions = [(p, c) for p in range(total_pixels) for c in range(3)]
-    selected_positions = random.sample(all_positions, min(total_bits, len(all_positions)))
-    return selected_positions
+    rng = random.Random(seed)
+    
+    positions = []
+    used_positions = set()
+    
+    while len(positions) < total_bits:
+        pixel_idx = rng.randint(0, total_pixels - 1)
+        channel = rng.randint(0, 2)
+        
+        position = (pixel_idx, channel)
+        if position not in used_positions:
+            used_positions.add(position)
+            positions.append(position)
+    
+    return positions
 
 def hide_text_bmp(image_file, text: str, seed_key: str = "stegano_key") -> io.BytesIO:
-    """
-    Скрывает текст в BMP-изображении с помощью LSB-стеганографии 
-    с псевдослучайным распределением битов.
-    """
     image_file.seek(0)
     img = Image.open(image_file)
     
@@ -37,10 +44,9 @@ def hide_text_bmp(image_file, text: str, seed_key: str = "stegano_key") -> io.By
             bits.append((byte >> i) & 1)
     
     total_pixels = img.width * img.height
-    total_bits_available = total_pixels * 3
     
-    if len(bits) > total_bits_available:
-        raise ValueError(f"Текст слишком длинный. Максимум: {total_bits_available//8} байт")
+    if len(bits) > total_pixels * 3:
+        raise ValueError("Текст слишком длинный")
     
     positions = generate_pseudo_random_positions(total_pixels, len(bits), seed_key)
     
@@ -53,12 +59,8 @@ def hide_text_bmp(image_file, text: str, seed_key: str = "stegano_key") -> io.By
             pixel_array.append((x, y))
     
     for bit_idx, (pixel_idx, channel) in enumerate(positions):
-        if bit_idx >= len(bits):
-            break
-            
         x, y = pixel_array[pixel_idx]
         r, g, b = encoded_img.getpixel((x, y))
-        
         bit_val = bits[bit_idx]
         
         if channel == 0:
@@ -76,10 +78,6 @@ def hide_text_bmp(image_file, text: str, seed_key: str = "stegano_key") -> io.By
     return output
 
 def extract_text_bmp(image_file, seed_key: str = "stegano_key") -> str:
-    """
-    Извлекает скрытый текст из BMP-изображения с помощью LSB-стеганографии
-    с псевдослучайным распределением битов.
-    """
     image_file.seek(0)
     img = Image.open(image_file)
     
@@ -87,17 +85,18 @@ def extract_text_bmp(image_file, seed_key: str = "stegano_key") -> str:
         img = img.convert('RGB')
     
     total_pixels = img.width * img.height
+    total_bits = total_pixels * 3
     
     pixel_array = []
     for y in range(img.height):
         for x in range(img.width):
             pixel_array.append((x, y))
     
-    max_bits = total_pixels * 3
+    max_bits_to_extract = min(total_bits, 50000)
+    positions = generate_pseudo_random_positions(total_pixels, max_bits_to_extract, seed_key)
+    
     bits = []
     bytes_list = []
-    
-    positions = generate_pseudo_random_positions(total_pixels, max_bits, seed_key)
     
     for bit_idx, (pixel_idx, channel) in enumerate(positions):
         x, y = pixel_array[pixel_idx]
@@ -115,17 +114,15 @@ def extract_text_bmp(image_file, seed_key: str = "stegano_key") -> str:
             for i in range(8):
                 byte_val = (byte_val << 1) | bits[i]
             bits = bits[8:]
-            
             bytes_list.append(byte_val)
             
-            # Проверяем на маркер конца
             if len(bytes_list) >= len(END_MARKER):
                 last_bytes = bytes(bytes_list[-len(END_MARKER):])
                 if last_bytes == END_MARKER:
                     text_bytes = bytes(bytes_list[:-len(END_MARKER)])
                     try:
                         return text_bytes.decode('utf-8')
-                    except UnicodeDecodeError:
+                    except:
                         try:
                             return text_bytes.decode('cp1251')
                         except:
@@ -133,5 +130,5 @@ def extract_text_bmp(image_file, seed_key: str = "stegano_key") -> str:
     
     try:
         return bytes(bytes_list).decode('utf-8')
-    except UnicodeDecodeError:
+    except:
         return bytes(bytes_list).decode('latin-1')
