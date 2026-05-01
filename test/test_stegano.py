@@ -540,6 +540,65 @@ class SteganoAnalyzer:
         
         return bits
     
+    # def _plot_jpg_ber(self, ber_results, quality_levels, languages):
+    #     """Строит график BER с подписанными точками"""
+    #     charts_dir = self.output_dir / 'charts'
+        
+    #     fig, ax = plt.subplots(figsize=(12, 7))
+        
+    #     colors = {'eng': '#3498db', 'rus': '#e74c3c'}
+    #     labels = {'eng': 'Английский текст', 'rus': 'Русский текст'}
+    #     markers = {'eng': 'o', 'rus': 's'}
+        
+    #     for lang in languages:
+    #         ber_means = []
+    #         for q in quality_levels:
+    #             vals = ber_results[lang][q]
+    #             ber_means.append(np.mean(vals) if vals else np.nan)
+            
+    #         # Рисуем линию
+    #         ax.plot(quality_levels, ber_means, 
+    #                color=colors[lang], linewidth=2, 
+    #                marker=markers[lang], markersize=10,
+    #                label=labels[lang], zorder=3)
+            
+    #         # Подписываем каждую точку значением BER
+    #         for q, ber in zip(quality_levels, ber_means):
+    #             if not np.isnan(ber):
+    #                 offset = 0.02 if lang == 'eng' else -0.04
+    #                 ax.annotate(f'{ber:.3f}', (q, ber), 
+    #                            textcoords="offset points", 
+    #                            xytext=(0, 12 if lang == 'eng' else -15),
+    #                            ha='center', fontsize=9,
+    #                            color=colors[lang], fontweight='bold')
+        
+    #     # Подписываем проценты сжатия под осью X
+    #     for q in quality_levels:
+    #         ax.axvline(x=q, color='gray', linestyle=':', alpha=0.3, linewidth=0.5)
+        
+    #     ax.set_title('BER vs Качество сжатия JPG\n(чем ниже BER, тем лучше сохранились данные)', 
+    #                 fontsize=14, fontweight='bold', pad=20)
+    #     ax.set_xlabel('Качество сжатия JPEG (%)', fontsize=12)
+    #     ax.set_ylabel('Bit Error Rate (BER)', fontsize=12)
+    #     ax.legend(loc='upper right', fontsize=11)
+    #     ax.grid(True, alpha=0.3)
+    #     ax.set_ylim(0, 0.65)
+    #     ax.set_xlim(0, 105)
+        
+    #     # Пороговая линия
+    #     ax.axhline(y=0.1, color='orange', linestyle='--', alpha=0.7, linewidth=1.5, 
+    #               label='Порог BER = 0.1')
+    #     ax.legend(loc='upper right', fontsize=11)
+        
+    #     # Добавляем аннотацию о пороге
+    #     ax.text(102, 0.11, 'Порог', fontsize=9, color='orange', ha='right')
+        
+    #     plt.tight_layout()
+    #     plt.savefig(charts_dir / 'jpg_ber_vs_quality.png', dpi=150, bbox_inches='tight')
+    #     plt.close()
+        
+    #     print(f"\nГрафик BER сохранен в {charts_dir}")
+    
     def _plot_jpg_ber(self, ber_results, quality_levels, languages):
         """Строит график BER с подписанными точками"""
         charts_dir = self.output_dir / 'charts'
@@ -550,55 +609,64 @@ class SteganoAnalyzer:
         labels = {'eng': 'Английский текст', 'rus': 'Русский текст'}
         markers = {'eng': 'o', 'rus': 's'}
         
+        # Инвертируем порядок: 5% качество = 95% сжатие, 100% качество = 0% сжатие
+        compression_levels = [100 - q for q in quality_levels]  # 95, 90, 85, 70, 50, 30, 10, 0
+        compression_labels = ['95%', '90%', '85%', '70%', '50%', '30%', '10%', '0%']
+        
         for lang in languages:
             ber_means = []
             for q in quality_levels:
                 vals = ber_results[lang][q]
                 ber_means.append(np.mean(vals) if vals else np.nan)
             
-            # Рисуем линию
-            ax.plot(quality_levels, ber_means, 
-                   color=colors[lang], linewidth=2, 
-                   marker=markers[lang], markersize=10,
-                   label=labels[lang], zorder=3)
+            # Рисуем линию (BER растет с увеличением сжатия)
+            ax.plot(compression_levels, ber_means, 
+                color=colors[lang], linewidth=2, 
+                marker=markers[lang], markersize=10,
+                label=labels[lang], zorder=3)
             
             # Подписываем каждую точку значением BER
-            for q, ber in zip(quality_levels, ber_means):
+            for comp, ber in zip(compression_levels, ber_means):
                 if not np.isnan(ber):
-                    offset = 0.02 if lang == 'eng' else -0.04
-                    ax.annotate(f'{ber:.3f}', (q, ber), 
-                               textcoords="offset points", 
-                               xytext=(0, 12 if lang == 'eng' else -15),
-                               ha='center', fontsize=9,
-                               color=colors[lang], fontweight='bold')
+                    if lang == 'eng':
+                        ax.annotate(f'{ber:.3f}', (comp, ber), 
+                                textcoords="offset points", 
+                                xytext=(0, 12),
+                                ha='center', fontsize=9,
+                                color=colors[lang], fontweight='bold')
+                    else:
+                        ax.annotate(f'{ber:.3f}', (comp, ber), 
+                                textcoords="offset points", 
+                                xytext=(0, -18),
+                                ha='center', fontsize=9,
+                                color=colors[lang], fontweight='bold')
         
-        # Подписываем проценты сжатия под осью X
-        for q in quality_levels:
-            ax.axvline(x=q, color='gray', linestyle=':', alpha=0.3, linewidth=0.5)
+        # Добавляем пояснительные надписи
+        ax.axvspan(70, 100, alpha=0.05, color='red', label='Сильное сжатие')
+        ax.axvspan(30, 70, alpha=0.05, color='yellow', label='Среднее сжатие')
+        ax.axvspan(0, 30, alpha=0.05, color='green', label='Слабое сжатие')
         
-        ax.set_title('BER vs Качество сжатия JPG\n(чем ниже BER, тем лучше сохранились данные)', 
+        ax.set_title('BER vs Сила сжатия JPG\n(чем сильнее сжатие, тем выше BER)', 
                     fontsize=14, fontweight='bold', pad=20)
-        ax.set_xlabel('Качество сжатия JPEG (%)', fontsize=12)
+        ax.set_xlabel('Сила сжатия (%)', fontsize=12)
         ax.set_ylabel('Bit Error Rate (BER)', fontsize=12)
-        ax.legend(loc='upper right', fontsize=11)
+        ax.legend(loc='upper left', fontsize=10)
         ax.grid(True, alpha=0.3)
         ax.set_ylim(0, 0.65)
-        ax.set_xlim(0, 105)
+        ax.set_xlim(0, 100)
         
         # Пороговая линия
         ax.axhline(y=0.1, color='orange', linestyle='--', alpha=0.7, linewidth=1.5, 
-                  label='Порог BER = 0.1')
-        ax.legend(loc='upper right', fontsize=11)
-        
-        # Добавляем аннотацию о пороге
-        ax.text(102, 0.11, 'Порог', fontsize=9, color='orange', ha='right')
+                label='Порог BER = 0.1')
+        ax.legend(loc='upper left', fontsize=10)
         
         plt.tight_layout()
         plt.savefig(charts_dir / 'jpg_ber_vs_quality.png', dpi=150, bbox_inches='tight')
         plt.close()
         
         print(f"\nГрафик BER сохранен в {charts_dir}")
-    
+
+
     # ========================================================================
     # СТАРЫЕ ГРАФИКИ (качество, время, размер, успешность)
     # ========================================================================
