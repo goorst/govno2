@@ -73,7 +73,7 @@ def hide_text_webp(image_file, text: str, seed_key: str = "stegano_key") -> io.B
         pixels[x, y] = (r, g, b)
     
     output = io.BytesIO()
-    encoded_img.save(output, format='WEBP', lossless=True, quality=100)
+    encoded_img.save(output, format='WEBP', lossless=True, method=6)
     output.seek(0)
     return output
 
