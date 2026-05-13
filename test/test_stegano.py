@@ -431,13 +431,19 @@ class SteganoAnalyzer:
         print(f"{'='*70}")
         quality_levels = [5, 10, 15, 30, 50, 70, 90, 100]
         languages = ['eng', 'rus']
+        # Генерируем тексты одинаковой длины в БАЙТАХ (не символах!)
+        # Английский: 200 символов = 200 байт
+        # Русский: 100 символов = 200 байт (кириллица = 2 байта на символ в UTF-8)
         test_text = self.generate_text_by_length(200, 'eng')
-        test_text_rus = self.generate_text_by_length(200, 'rus')
+        test_text_rus = self.generate_text_by_length(100, 'rus')  # ИСПРАВЛЕНО: 100 вместо 200
+        
         images = self.test_images.get('jpg', [])[:3]
         if not images:
             print("Нет JPG изображений!")
             return
+        
         ber_results = {lang: {q: [] for q in quality_levels} for lang in languages}
+        
         for image_path in images:
             print(f"\n{image_path.name}")
             for lang, text in [('eng', test_text), ('rus', test_text_rus)]:
@@ -449,7 +455,13 @@ class SteganoAnalyzer:
                 except Exception as e:
                     print(f"  Ошибка встраивания: {e}")
                     continue
+                
+                # Вычисляем реальную длину сообщения в битах
+                text_bytes_len = len(text.encode('utf-8'))
+                actual_bits_len = text_bytes_len * 8
+                
                 original_bits = self._extract_bits_from_jpg(stego_img)
+                
                 for quality in quality_levels:
                     print(f"  {lang} quality={quality:3d}%...", end='', flush=True)
                     compressed = io.BytesIO()
@@ -457,13 +469,16 @@ class SteganoAnalyzer:
                     compressed.seek(0)
                     compressed_img = Image.open(compressed)
                     extracted_bits = self._extract_bits_from_jpg(compressed_img)
+                    
                     if len(original_bits) > 0 and len(extracted_bits) > 0:
-                        min_len = min(len(original_bits), len(extracted_bits))
+                        # Сравниваем ТОЛЬКО биты сообщения (не шум!)
+                        min_len = min(actual_bits_len, len(original_bits), len(extracted_bits))
                         ber = sum(1 for i in range(min_len) if original_bits[i] != extracted_bits[i]) / min_len
                     else:
                         ber = 1.0
                     ber_results[lang][quality].append(ber)
                     print(f" BER: {ber:.4f}")
+        
         self._plot_jpg_ber(ber_results, quality_levels, languages)
         return ber_results
     
